@@ -1,0 +1,92 @@
+/* Design tokens — "vacancy board"
+   Free time is absence: it gets no fill and no colour. Everything you see on the
+   board is a mark on an otherwise empty ledger. Only your own claim is solid. */
+
+:root {
+  /* Colour — 6 roles, plus the washes each one needs. */
+  --paper: #eef0f1;        /* page ground, cool light grey */
+  --card: #ffffff;         /* the board and every raised surface */
+  --rule: #d6dbdc;         /* hairlines, borders, dividers */
+  --rule-faint: #ecefef;   /* half-hour column rules — quieter than the hour rules */
+  --ink: #131a18;          /* primary text, the one dark element (top bar) */
+  --ink-soft: #5a6663;     /* secondary text — 5.7:1 on white */
+  --claim: #0e7a4f;        /* YOUR booking, and confirm actions. The only solid accent. */
+  --claim-wash: #dcede4;
+  --claim-deep: #0a5c3b;
+  --taken-wash: #e9eceb;   /* someone else's hold — always hatched, never solid */
+  --taken-line: rgb(90 102 99 / 0.25); /* hatch strokes, kept faint so the label still reads */
+  --taken-edge: #c3ccc8;
+  --alert: #b3251e;        /* conflict only, never decorative */
+  --alert-wash: #f9e6e4;
+
+  /* Drafting hatch: the convention for occupied or excluded area. */
+  --hatch-taken: repeating-linear-gradient(
+    45deg,
+    var(--taken-line) 0 1px,
+    transparent 1px 6px
+  );
+
+  /* Type — three roles. Display carries the personality, mono carries the data. */
+  --face-display: 'Chivo', system-ui, sans-serif;
+  --face-body: 'Karla', system-ui, -apple-system, sans-serif;
+  --face-mono: 'JetBrains Mono', ui-monospace, 'Courier New', monospace;
+
+  --step-display: clamp(1.5rem, 3.5vw, 2.25rem);
+  --step-head: 1.0625rem;
+  --step-body: 0.9375rem;
+  --step-small: 0.8125rem;
+  --step-micro: 0.6875rem;
+
+  /* Board geometry — half-hour columns, 08:00 to 20:00. */
+  --col-w: 2.375rem;
+  --row-h: 3rem;
+  --res-w: 12.5rem;
+
+  --radius: 5px;
+  --shadow: 0 1px 2px rgb(19 26 24 / 0.06), 0 8px 24px rgb(19 26 24 / 0.07);
+  --pad-page: clamp(0.875rem, 2.5vw, 1.75rem);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--face-body);
+  font-size: var(--step-body);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+input,
+select,
+button,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--claim);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}

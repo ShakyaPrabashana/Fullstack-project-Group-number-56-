@@ -8,6 +8,7 @@ export default function Login() {
   const navigate = useNavigate()
   const [form, setForm] = useState({ email: '', password: '' })
   const [error, setError] = useState(null)
+  const [showPassword, setShowPassword] = useState(false)
 
   async function submit(e) {
     e.preventDefault()
@@ -47,13 +48,24 @@ export default function Login() {
 
         <label className="field field--wide">
           <span className="field__label">Password</span>
-          <input
-            type="password"
-            className="input"
-            autoComplete="current-password"
-            value={form.password}
-            onChange={(e) => setForm({ ...form, password: e.target.value })}
-          />
+          <span className="field__control">
+            <input
+              type={showPassword ? 'text' : 'password'}
+              className="input"
+              autoComplete="current-password"
+              value={form.password}
+              onChange={(e) => setForm({ ...form, password: e.target.value })}
+            />
+            <button
+              type="button"
+              className="field__toggle"
+              onClick={() => setShowPassword((v) => !v)}
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+              aria-pressed={showPassword}
+            >
+              {showPassword ? 'Hide' : 'Show'}
+            </button>
+          </span>
         </label>
 
         {error && (

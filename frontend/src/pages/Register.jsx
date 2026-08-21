@@ -10,6 +10,7 @@ export default function Register() {
   const navigate = useNavigate()
   const [form, setForm] = useState({ name: '', email: '', password: '', confirm: '' })
   const [error, setError] = useState(null)
+  const [showPassword, setShowPassword] = useState(false)
 
   async function submit(e) {
     e.preventDefault()
@@ -73,24 +74,46 @@ export default function Register() {
         <div className="pair">
           <label className="field">
             <span className="field__label">Password</span>
-            <input
-              type="password"
-              className="input"
-              autoComplete="new-password"
-              value={form.password}
-              onChange={(e) => setForm({ ...form, password: e.target.value })}
-            />
+            <span className="field__control">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                className="input"
+                autoComplete="new-password"
+                value={form.password}
+                onChange={(e) => setForm({ ...form, password: e.target.value })}
+              />
+              <button
+                type="button"
+                className="field__toggle"
+                onClick={() => setShowPassword((v) => !v)}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                aria-pressed={showPassword}
+              >
+                {showPassword ? 'Hide' : 'Show'}
+              </button>
+            </span>
           </label>
 
           <label className="field">
             <span className="field__label">Repeat password</span>
-            <input
-              type="password"
-              className="input"
-              autoComplete="new-password"
-              value={form.confirm}
-              onChange={(e) => setForm({ ...form, confirm: e.target.value })}
-            />
+            <span className="field__control">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                className="input"
+                autoComplete="new-password"
+                value={form.confirm}
+                onChange={(e) => setForm({ ...form, confirm: e.target.value })}
+              />
+              <button
+                type="button"
+                className="field__toggle"
+                onClick={() => setShowPassword((v) => !v)}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                aria-pressed={showPassword}
+              >
+                {showPassword ? 'Hide' : 'Show'}
+              </button>
+            </span>
           </label>
         </div>
 

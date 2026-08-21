@@ -122,6 +122,38 @@
   margin: 0;
 }
 
+.field__control {
+  position: relative;
+  display: flex;
+}
+
+.field__control .input {
+  padding-right: 2.75rem;
+}
+
+.field__toggle {
+  position: absolute;
+  top: 50%;
+  right: 0.3rem;
+  transform: translateY(-50%);
+  padding: 0.3rem 0.5rem;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  font-family: var(--face-mono);
+  font-size: var(--step-micro);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.field__toggle:hover {
+  background: var(--paper);
+  color: var(--ink);
+}
+
 .field--wide {
   grid-column: 1 / -1;
 }

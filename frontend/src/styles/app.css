@@ -533,14 +533,16 @@
   z-index: 3;
   display: flex;
   flex-direction: column;
-  gap: 0.05rem;
-  padding: 0.35rem 0.6rem;
+  justify-content: center;
+  gap: 0.15rem;
+  padding: 0.4rem 0.6rem;
   background: var(--card);
   border: 0;
   border-top: 1px solid var(--rule);
   border-right: 1px solid var(--rule);
   text-align: left;
   cursor: pointer;
+  overflow: hidden;
 }
 
 .res:hover {
@@ -551,20 +553,27 @@
   font-family: var(--face-mono);
   font-size: var(--step-micro);
   font-weight: 700;
+  line-height: 1.1;
   color: var(--claim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .res__name {
   font-size: var(--step-small);
-  font-weight: 600;
-  line-height: 1.15;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--ink);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .res__meta {
-  font-size: 0.625rem;
+  font-size: var(--step-micro);
+  font-weight: 500;
+  line-height: 1.2;
   color: var(--ink-soft);
   overflow: hidden;
   text-overflow: ellipsis;

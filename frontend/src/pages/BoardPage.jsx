@@ -4,7 +4,7 @@ import BookingDrawer from '../components/BookingDrawer'
 import DateStrip from '../components/DateStrip'
 import Filters from '../components/Filters'
 import { RESOURCES } from '../data/resources'
-import { addMinutes, fitsInDay, nextBookableStart, todayIso } from '../lib/time'
+import { addMinutes, fitsInDay, firstFreeStart, nextBookableStart, todayIso } from '../lib/time'
 import { useAuth } from '../state/AuthContext'
 import { useBookings } from '../state/BookingsContext'
 import { hadSavedDraft, useDraft } from '../state/useDraft'
@@ -130,7 +130,10 @@ export default function BoardPage() {
             isToday={day === todayIso()}
             liveBump={liveBump}
             onPickSlot={startDraft}
-            onOpenResource={(r) => startDraft(r, nextBookableStart())}
+            onOpenResource={(r) => {
+  const takenToday = bookings.filter((b) => b.resourceId === r.id && b.day === day)
+  startDraft(r, firstFreeStart(day, takenToday) ?? nextBookableStart())
+}}
             onOpenBooking={openBooking}
           />
         )}

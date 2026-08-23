@@ -107,4 +107,19 @@ export function nextBookableStart() {
   if (rounded < DAY_START) return fromMin(DAY_START)
   if (rounded > DAY_END - SLOT_MIN) return fromMin(DAY_END - SLOT_MIN)
   return fromMin(rounded)
+}/**
+ * The first start time on `day`, at or after `nextBookableStart()` (or the start of
+ * the day for a future date), for which a `minutes`-long window doesn't overlap any
+ * booking in `taken`. Returns null when nothing that long is free before DAY_END.
+ */
+export function firstFreeStart(day, taken, minutes = 60) {
+  const earliest = day === todayIso() ? nextBookableStart() : fromMin(DAY_START)
+
+  for (const start of SLOT_TIMES) {
+    if (toMin(start) < toMin(earliest)) continue
+    if (!fitsInDay(start, minutes)) break
+    const end = addMinutes(start, minutes)
+    if (!taken.some((b) => overlaps(start, end, b.start, b.end))) return start
+  }
+  return null
 }

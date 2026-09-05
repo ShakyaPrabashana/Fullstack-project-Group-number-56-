@@ -1,0 +1,39 @@
+services:
+  frontend:
+    build:
+      context: ./frontend
+    container_name: campusbook-frontend
+    ports:
+      # Override with FRONTEND_PORT=xxxx docker compose up if 5180 is busy.
+      - "${FRONTEND_PORT:-5180}:80"
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # The rest of the stack is not built yet. Uncomment these as the milestones
+  # land, and uncomment the /api/ proxy block in frontend/nginx.conf to match.
+  #
+  # backend:
+  #   build:
+  #     context: ./backend
+  #   container_name: campusbook-backend
+  #   environment:
+  #     MONGO_URL: mongodb://mongo:27017/campusbook
+  #     JWT_SECRET: ${JWT_SECRET:-change-me-in-env}
+  #     PORT: 8080
+  #   ports:
+  #     - "8080:8080"
+  #   depends_on:
+  #     - mongo
+  #   restart: unless-stopped
+  #
+  # mongo:
+  #   image: mongo:7
+  #   container_name: campusbook-mongo
+  #   volumes:
+  #     - mongo-data:/data/db
+  #   ports:
+  #     - "27017:27017"
+  #   restart: unless-stopped
+  #
+  # volumes:
+  #   mongo-data:

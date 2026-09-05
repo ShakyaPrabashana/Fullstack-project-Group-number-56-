@@ -1,6 +1,31 @@
-// Temporary booking data
 let bookings = [];
 let nextId = 1;
+
+// Check whether two time periods overlap
+const isTimeOverlap = (start1, end1, start2, end2) => {
+    return start1 < end2 && start2 < end1;
+};
+
+// Check for booking conflict
+const hasConflict = (userBooking, excludeId = null) => {
+    return bookings.some((booking) => {
+        if (excludeId !== null && booking.id === excludeId) {
+            return false;
+        }
+
+        return (
+            booking.resourceId == userBooking.resourceId &&
+            booking.date === userBooking.date &&
+            isTimeOverlap(
+                userBooking.startTime,
+                userBooking.endTime,
+                booking.startTime,
+                booking.endTime
+            )
+        );
+    });
+};
+
 
 // Create a booking
 const createBooking = (req, res) => {
@@ -9,6 +34,13 @@ const createBooking = (req, res) => {
     if (!userId || !resourceId || !date || !startTime || !endTime) {
         return res.status(400).json({
             message: "All booking fields are required"
+        });
+    }
+
+    // Conflict detection
+    if (hasConflict({ resourceId, date, startTime, endTime })) {
+        return res.status(409).json({
+            message: "Booking conflict: Resource is already booked during this time"
         });
     }
 
@@ -29,10 +61,12 @@ const createBooking = (req, res) => {
     });
 };
 
+
 // Get all bookings
 const getBookings = (req, res) => {
     res.status(200).json(bookings);
 };
+
 
 // Get booking by ID
 const getBookingById = (req, res) => {
@@ -51,6 +85,7 @@ const getBookingById = (req, res) => {
     res.status(200).json(booking);
 };
 
+
 // Update booking
 const updateBooking = (req, res) => {
     const id = parseInt(req.params.id);
@@ -65,19 +100,41 @@ const updateBooking = (req, res) => {
         });
     }
 
-    const { userId, resourceId, date, startTime, endTime } = req.body;
+    const {
+        userId,
+        resourceId,
+        date,
+        startTime,
+        endTime
+    } = req.body;
 
-    booking.userId = userId || booking.userId;
-    booking.resourceId = resourceId || booking.resourceId;
-    booking.date = date || booking.date;
-    booking.startTime = startTime || booking.startTime;
-    booking.endTime = endTime || booking.endTime;
+    const updatedBooking = {
+        userId: userId || booking.userId,
+        resourceId: resourceId || booking.resourceId,
+        date: date || booking.date,
+        startTime: startTime || booking.startTime,
+        endTime: endTime || booking.endTime
+    };
+
+    // Conflict detection during update
+    if (hasConflict(updatedBooking, id)) {
+        return res.status(409).json({
+            message: "Booking conflict: Resource is already booked during this time"
+        });
+    }
+
+    booking.userId = updatedBooking.userId;
+    booking.resourceId = updatedBooking.resourceId;
+    booking.date = updatedBooking.date;
+    booking.startTime = updatedBooking.startTime;
+    booking.endTime = updatedBooking.endTime;
 
     res.status(200).json({
         message: "Booking updated successfully",
         booking
     });
 };
+
 
 // Delete booking
 const deleteBooking = (req, res) => {
@@ -100,6 +157,7 @@ const deleteBooking = (req, res) => {
         booking: deletedBooking[0]
     });
 };
+
 
 module.exports = {
     createBooking,

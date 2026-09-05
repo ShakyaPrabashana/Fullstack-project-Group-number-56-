@@ -7,11 +7,9 @@
 const PREFIX = 'campusbook:'
 
 export const KEYS = {
-  users: `${PREFIX}users`,
-  session: `${PREFIX}session`,
-  bookings: `${PREFIX}bookings`,
+  token: `${PREFIX}token`, // JWT from the server, sent on every authenticated request
+  session: `${PREFIX}session`, // the signed-in user, so a refresh doesn't bounce to /login
   draft: `${PREFIX}draft`, // the in-progress booking, kept across refresh
-  seeded: `${PREFIX}seeded`,
 }
 
 export function read(key, fallback) {

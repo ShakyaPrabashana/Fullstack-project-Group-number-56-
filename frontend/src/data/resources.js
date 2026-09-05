@@ -1,6 +1,10 @@
 /**
- * Seed catalogue of bookable resources.
- * Replaced by GET /api/resources once the backend lands (M2).
+ * The running app no longer reads RESOURCES — the catalogue comes from
+ * GET /api/resources, seeded by backend/src/seed/resources.js.
+ *
+ * This copy remains for two things: KINDS, which drives the type filter, and
+ * the test double in src/test/fakeServer.js, which serves it as the API would.
+ * Keep it in step with the backend seed file.
  */
 export const RESOURCES = [
   // ---- Rooms ----

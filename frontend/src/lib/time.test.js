@@ -1,4 +1,3 @@
-import { describe, expect, it } from 'vitest'
 import { SLOTS, addMinutes, colOf, fitsInDay, formatDuration, overlaps, spanOf, toMin } from './time'
 
 describe('time maths', () => {

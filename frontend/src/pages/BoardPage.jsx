@@ -3,8 +3,7 @@ import BoardGrid from '../components/BoardGrid'
 import BookingDrawer from '../components/BookingDrawer'
 import DateStrip from '../components/DateStrip'
 import Filters from '../components/Filters'
-import { RESOURCES } from '../data/resources'
-import { addMinutes, fitsInDay, firstFreeStart, nextBookableStart, todayIso } from '../lib/time'
+import { addMinutes, firstFreeStart, fitsInDay, nextBookableStart, todayIso } from '../lib/time'
 import { useAuth } from '../state/AuthContext'
 import { useBookings } from '../state/BookingsContext'
 import { hadSavedDraft, useDraft } from '../state/useDraft'
@@ -38,7 +37,7 @@ export default function BoardPage() {
 
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase()
-    return (resources.length ? resources : RESOURCES).filter((r) => {
+    return resources.filter((r) => {
       if (kind !== 'All' && r.kind !== kind) return false
       if (r.capacity < minCapacity) return false
       if (!q) return true
@@ -84,7 +83,7 @@ export default function BoardPage() {
 
   async function confirm() {
     setBusy(true)
-    const result = await book(draft, user)
+    const result = await book(draft)
     setBusy(false)
     if (result.ok) {
       setDraft(null)
@@ -97,7 +96,7 @@ export default function BoardPage() {
 
   async function removeBooking(id) {
     setBusy(true)
-    await cancel(id, user)
+    await cancel(id)
     setBusy(false)
     setView(null)
   }
@@ -131,9 +130,11 @@ export default function BoardPage() {
             liveBump={liveBump}
             onPickSlot={startDraft}
             onOpenResource={(r) => {
-  const takenToday = bookings.filter((b) => b.resourceId === r.id && b.day === day)
-  startDraft(r, firstFreeStart(day, takenToday) ?? nextBookableStart())
-}}
+              // Open on the resource's next genuinely free window, not just the
+              // next half-hour on the clock.
+              const takenToday = bookings.filter((b) => b.resourceId === r.id && b.day === day)
+              startDraft(r, firstFreeStart(day, takenToday) ?? nextBookableStart())
+            }}
             onOpenBooking={openBooking}
           />
         )}

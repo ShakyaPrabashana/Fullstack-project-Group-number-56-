@@ -1,9 +1,13 @@
+# Secrets — never bake these into an image.
+.env
+.env.*
+.env.fullstack
+!.env.example
+
 node_modules
 dist
 .git
 .gitignore
-.env
-.env.*
 *.log
 .vite
 Dockerfile

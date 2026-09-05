@@ -107,7 +107,9 @@ export function nextBookableStart() {
   if (rounded < DAY_START) return fromMin(DAY_START)
   if (rounded > DAY_END - SLOT_MIN) return fromMin(DAY_END - SLOT_MIN)
   return fromMin(rounded)
-}/**
+}
+
+/**
  * The first start time on `day`, at or after `nextBookableStart()` (or the start of
  * the day for a future date), for which a `minutes`-long window doesn't overlap any
  * booking in `taken`. Returns null when nothing that long is free before DAY_END.

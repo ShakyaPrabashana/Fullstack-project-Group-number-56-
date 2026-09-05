@@ -122,6 +122,7 @@
   margin: 0;
 }
 
+/* Password reveal: the input and its toggle share one positioned box. */
 .field__control {
   position: relative;
   display: flex;
@@ -559,6 +560,8 @@
   color: var(--ink-soft);
 }
 
+/* Two lines, sized to fit inside --row-h. Each sticky cell is opaque and later in
+   the DOM, so anything taller than its row gets painted over by the row below. */
 .res {
   position: sticky;
   left: 0;
@@ -566,46 +569,51 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 0.15rem;
-  padding: 0.4rem 0.6rem;
+  gap: 0.1rem;
+  overflow: hidden;
+  padding: 0.3rem 0.6rem;
   background: var(--card);
   border: 0;
   border-top: 1px solid var(--rule);
   border-right: 1px solid var(--rule);
   text-align: left;
   cursor: pointer;
-  overflow: hidden;
 }
 
 .res:hover {
   background: var(--paper);
 }
 
+.res__head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
 .res__id {
+  flex: 0 0 auto;
   font-family: var(--face-mono);
   font-size: var(--step-micro);
   font-weight: 700;
-  line-height: 1.1;
+  line-height: 1.2;
   color: var(--claim);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .res__name {
+  flex: 1 1 auto;
+  min-width: 0;
   font-size: var(--step-small);
-  font-weight: 700;
-  line-height: 1.2;
-  color: var(--ink);
+  font-weight: 600;
+  line-height: 1.25;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .res__meta {
-  font-size: var(--step-micro);
-  font-weight: 500;
-  line-height: 1.2;
+  font-size: 0.625rem;
+  line-height: 1.3;
   color: var(--ink-soft);
   overflow: hidden;
   text-overflow: ellipsis;

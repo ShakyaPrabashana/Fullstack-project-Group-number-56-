@@ -1,28 +1,11 @@
-const express = require("express");
+const { Router } = require('express')
+const { requireAuth } = require('../middleware/auth')
+const { list, create, remove } = require('../controllers/bookingController')
 
-const router = express.Router();
+const router = Router()
 
-const {
-    createBooking,
-    getBookings,
-    getBookingById,
-    updateBooking,
-    deleteBooking
-} = require("../controllers/bookingController");
+router.get('/', requireAuth, list)
+router.post('/', requireAuth, create)
+router.delete('/:id', requireAuth, remove)
 
-// Create booking
-router.post("/", createBooking);
-
-// Get all bookings
-router.get("/", getBookings);
-
-// Get booking by ID
-router.get("/:id", getBookingById);
-
-// Update booking
-router.put("/:id", updateBooking);
-
-// Delete booking
-router.delete("/:id", deleteBooking);
-
-module.exports = router;
+module.exports = router

@@ -1,0 +1,14 @@
+# Secrets — never commit these.
+.env
+.env.*
+!.env.example
+!.env.fullstack.example
+
+# Dependencies and build output
+node_modules
+dist
+
+# Logs and OS noise
+*.log
+.DS_Store
+Thumbs.db

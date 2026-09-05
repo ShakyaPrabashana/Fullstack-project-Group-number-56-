@@ -6,34 +6,46 @@ services:
     ports:
       # Override with FRONTEND_PORT=xxxx docker compose up if 5180 is busy.
       - "${FRONTEND_PORT:-5180}:80"
+    depends_on:
+      - backend
     restart: unless-stopped
 
-  # ---------------------------------------------------------------------------
-  # The rest of the stack is not built yet. Uncomment these as the milestones
-  # land, and uncomment the /api/ proxy block in frontend/nginx.conf to match.
-  #
-  # backend:
-  #   build:
-  #     context: ./backend
-  #   container_name: campusbook-backend
-  #   environment:
-  #     MONGO_URL: mongodb://mongo:27017/campusbook
-  #     JWT_SECRET: ${JWT_SECRET:-change-me-in-env}
-  #     PORT: 8080
-  #   ports:
-  #     - "8080:8080"
-  #   depends_on:
-  #     - mongo
-  #   restart: unless-stopped
-  #
-  # mongo:
-  #   image: mongo:7
-  #   container_name: campusbook-mongo
-  #   volumes:
-  #     - mongo-data:/data/db
-  #   ports:
-  #     - "27017:27017"
-  #   restart: unless-stopped
-  #
-  # volumes:
-  #   mongo-data:
+  backend:
+    build:
+      context: ./backend
+    container_name: campusbook-backend
+    # JWT_SECRET and anything else come from the root env file.
+    env_file:
+      - .env.fullstack
+    environment:
+      # Set after env_file, so these win: inside the compose network the database
+      # is reached by service name, not the localhost value in the file.
+      MONGO_URL: mongodb://mongo:27017/campusbook
+      PORT: 8080
+      NODE_ENV: production
+    ports:
+      - "${BACKEND_PORT:-8080}:8080"
+    depends_on:
+      mongo:
+        condition: service_healthy
+    restart: unless-stopped
+
+  mongo:
+    image: mongo:7
+    container_name: campusbook-mongo
+    volumes:
+      - mongo-data:/data/db
+    ports:
+      - "${MONGO_PORT:-27017}:27017"
+    healthcheck:
+      # The backend waits for this, so it never starts against a database that
+      # is still coming up.
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.runCommand({ ping: 1 })"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    restart: unless-stopped
+
+volumes:
+  mongo-data:

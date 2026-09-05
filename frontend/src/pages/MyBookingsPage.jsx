@@ -27,7 +27,7 @@ export default function MyBookingsPage() {
 
   async function drop(id) {
     setBusyId(id)
-    await cancel(id, user)
+    await cancel(id)
     setBusyId(null)
   }
 

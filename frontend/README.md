@@ -1,18 +1,22 @@
 # CampusBook — frontend
 
-Room and equipment booking for campus. React + Vite. This is the front-end tier only;
-the Express API, MongoDB, and Socket.io server land in later milestones.
+Room and equipment booking for campus. React + Vite, talking to the Express API in
+`../backend` over REST, with live updates over Socket.io.
 
 ## Run it
 
 ```bash
 npm install
 npm run dev        # http://localhost:5173
-npm test           # 20 tests
+npm test           # Jest + React Testing Library
 npm run build
 ```
 
-With Docker, from the repository root:
+The dev server needs the API running on :8080 (see backend/README.md), which
+Vite proxies to. Without it the board shows a "cannot reach the server" notice.
+
+With Docker, from the repository root, which starts Mongo, the API and this app
+together:
 
 ```bash
 docker compose up --build     # http://localhost:5180
@@ -38,7 +42,7 @@ confirm. Register and sign in are real flows with protected routes.
 | Client-side persistence | `src/state/useDraft.js` — the in-progress booking survives a refresh |
 | Concurrent edit handling | `createBooking` in `src/api/client.js`, surfaced by `Alert` in `BookingDrawer.jsx` |
 | Real-time between clients | `src/lib/live.js` |
-| Client tests | `npm test` — 20 tests across `src/lib`, `src/api`, `src/test` |
+| Client tests | `npm test` — Jest + React Testing Library, 28 tests |
 | Containerised | `Dockerfile`, `nginx.conf`, root `docker-compose.yml` |
 
 ### Concurrency
@@ -48,19 +52,27 @@ than overwriting them, `createBooking` re-checks current state at confirm time a
 returns the booking that got there first, so the panel can name who holds it and what
 for. The board refreshes to their version — the earlier booking always wins.
 
-### Real-time, before the server exists
+### Real-time
 
-`src/lib/live.js` wires tabs together with `BroadcastChannel`. **Open the app in two
-windows, sign in as two different people, and book something in one — it appears in
-the other immediately, with a brief pulse.** That is the whole demo, no backend needed.
+`src/lib/live.js` holds a Socket.io connection, authenticated with the same JWT as the
+REST calls — an unauthenticated socket is refused rather than being allowed to watch
+the board.
 
-Swapping in Socket.io means editing only that file; `connect()` and `publish()` are all
-the rest of the app knows about.
+**Open the app in two browsers on different machines, sign in as two people, and book
+something in one — it appears in the other immediately, with a brief pulse.**
 
-## Wiring the backend (M2)
+The client only ever listens; it never emits booking events. A change goes through the
+REST API, and the server broadcasts once the write has landed, so the database stays
+the single source of truth. The broadcast is treated as a nudge to refetch rather than
+as data, and your own actions are not pulsed back at you.
 
-`src/api/client.js` is the only file that talks to storage, and every function is
-already async and shaped like its endpoint:
+Tests drive this through `src/test/socketMock.js`, so the subscribe-and-refetch path is
+covered without a running server.
+
+## Talking to the backend
+
+`src/api/client.js` is the only file that talks to the API. Every function maps to
+one endpoint:
 
 ```
 listResources  -> GET    /api/resources
@@ -70,8 +82,17 @@ cancelBooking  -> DELETE /api/bookings/:id
 register/login -> POST   /api/auth/register | /api/auth/login
 ```
 
-Vite proxies `/api` to `localhost:8080` in dev. For the container, uncomment the
-`/api/` block in `nginx.conf` and the `backend` service in `docker-compose.yml`.
+Requests go to a relative `/api` path, routed in both environments: Vite proxies it
+to `localhost:8080` in dev, nginx proxies it to the `backend` container in Docker.
+Set `VITE_API_URL` to point elsewhere.
+
+The JWT and the signed-in user are kept in `localStorage`, so a refresh does not
+bounce you to the sign-in screen. `request()` attaches `Authorization: Bearer` to
+every call and turns a failed `fetch` into a readable message rather than an
+unhandled rejection.
+
+Tests run against `src/test/fakeServer.js`, an in-memory double implementing the
+same contract, so the HTTP path is exercised without needing a server or Mongo.
 
 ## Design notes
 
@@ -91,10 +112,12 @@ selectors, which is what stops section spacing rules from cancelling each other 
 
 ## Known limitations
 
-- No backend. Everything persists to `localStorage` and is per-browser; clearing site
-  data resets it. Accounts are local, and while passwords are salted and SHA-256 hashed
-  rather than stored in the clear, that is **not** security — real auth is the JWT the
-  Express server will issue in M2.
+- The API must be running, or the board shows a "cannot reach the server" notice and
+  stays empty. There is no offline read cache yet.
+- The JWT is kept in `localStorage`, which is readable by any script on the page. It
+  is the pragmatic choice for coursework; a httpOnly cookie would be the stronger one.
+- Nothing refreshes an expired token. After seven days the next request fails and you
+  have to sign in again.
 - Board cells are pointer shortcuts and are skipped by Tab. The keyboard path is the
   resource-name button on each row, which opens the same panel with day, start and
   duration as ordinary form controls.

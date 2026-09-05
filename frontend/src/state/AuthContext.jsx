@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useMemo, useState } from 'react'
 import * as api from '../api/client'
+import { disconnect, refreshAuth } from '../lib/live'
 
 const AuthContext = createContext(null)
 
@@ -10,7 +11,10 @@ export function AuthProvider({ children }) {
   const signIn = useCallback(async (credentials) => {
     setBusy(true)
     const result = await api.login(credentials)
-    if (result.ok) setUser(result.user)
+    if (result.ok) {
+      setUser(result.user)
+      refreshAuth() // reconnect the socket with the new token
+    }
     setBusy(false)
     return result
   }, [])
@@ -18,13 +22,17 @@ export function AuthProvider({ children }) {
   const signUp = useCallback(async (details) => {
     setBusy(true)
     const result = await api.register(details)
-    if (result.ok) setUser(result.user)
+    if (result.ok) {
+      setUser(result.user)
+      refreshAuth()
+    }
     setBusy(false)
     return result
   }, [])
 
   const signOut = useCallback(() => {
     api.logout()
+    disconnect() // stop listening as soon as the token is gone
     setUser(null)
   }, [])
 

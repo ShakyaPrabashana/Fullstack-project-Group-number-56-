@@ -1,14 +1,13 @@
-import { beforeEach, describe, expect, it } from 'vitest'
-import { cancelBooking, createBooking, listBookings, login, readBookings, register } from './client'
-import { todayIso } from '../lib/time'
+import { cancelBooking, createBooking, listBookings, listResources, login, logout, register } from './client'
+import { installFakeServer } from '../test/fakeServer'
+import { KEYS, read } from '../lib/storage'
 
-const user = { id: 'u1', name: 'Shakya P' }
-const other = { id: 'u2', name: 'Dilini F' }
+const DAY = '2026-01-15'
 
 function draft(overrides = {}) {
   return {
     resourceId: 'SR-14',
-    day: todayIso(),
+    day: DAY,
     start: '10:00',
     end: '11:00',
     purpose: 'Group 56 sprint review',
@@ -16,80 +15,144 @@ function draft(overrides = {}) {
   }
 }
 
-describe('bookings', () => {
-  beforeEach(async () => {
-    await listBookings() // seeds the demo holds
-  })
+let server
 
-  it('books a free window', async () => {
-    const result = await createBooking(draft(), user)
-    expect(result.ok).toBe(true)
-    expect(readBookings().some((b) => b.id === result.booking.id)).toBe(true)
-  })
-
-  it('refuses an overlapping window and names who holds it', async () => {
-    await createBooking(draft(), other)
-    const result = await createBooking(draft({ start: '10:30', end: '11:30' }), user)
-
-    expect(result.ok).toBe(false)
-    expect(result.conflict.userName).toBe('Dilini F')
-  })
-
-  it('leaves the first booking untouched when a second one conflicts', async () => {
-    const first = await createBooking(draft(), other)
-    await createBooking(draft({ purpose: 'Something else' }), user)
-
-    const stored = readBookings().filter((b) => b.resourceId === 'SR-14')
-    expect(stored).toHaveLength(1)
-    expect(stored[0].id).toBe(first.booking.id)
-    expect(stored[0].purpose).toBe('Group 56 sprint review')
-  })
-
-  it('allows a booking that starts exactly when another ends', async () => {
-    await createBooking(draft(), other)
-    const result = await createBooking(draft({ start: '11:00', end: '12:00' }), user)
-    expect(result.ok).toBe(true)
-  })
-
-  it('only lets the owner cancel', async () => {
-    const made = await createBooking(draft(), other)
-    const denied = await cancelBooking(made.booking.id, user)
-
-    expect(denied.ok).toBe(false)
-    expect(denied.error).toContain('Dilini F')
-    expect(readBookings().some((b) => b.id === made.booking.id)).toBe(true)
-
-    const allowed = await cancelBooking(made.booking.id, other)
-    expect(allowed.ok).toBe(true)
-  })
+beforeEach(() => {
+  server = installFakeServer()
 })
 
-describe('accounts', () => {
-  it('registers, then signs in with the same credentials', async () => {
-    const made = await register({
+describe('auth', () => {
+  it('stores the token and user after registering', async () => {
+    const result = await register({
       name: 'Shakya P',
       email: 'Shakya@students.nsbm.ac.lk',
       password: 'correct horse',
     })
-    expect(made.ok).toBe(true)
 
-    const back = await login({ email: 'shakya@students.nsbm.ac.lk', password: 'correct horse' })
-    expect(back.ok).toBe(true)
-    expect(back.user.name).toBe('Shakya P')
+    expect(result.ok).toBe(true)
+    expect(result.user).toMatchObject({ name: 'Shakya P', email: 'shakya@students.nsbm.ac.lk' })
+    expect(read(KEYS.token, null)).toEqual(expect.any(String))
+    expect(read(KEYS.session, null)).toMatchObject({ name: 'Shakya P' })
+  })
+
+  it('surfaces the server message when the password is wrong', async () => {
+    server.seedUser({ name: 'A B', email: 'ab@nsbm.ac.lk', password: 'right-password' })
+
+    const result = await login({ email: 'ab@nsbm.ac.lk', password: 'nope' })
+    expect(result.ok).toBe(false)
+    expect(result.error).toMatch(/do not match/i)
+  })
+
+  it('clears the token on sign out', async () => {
+    await register({ name: 'A B', email: 'ab@nsbm.ac.lk', password: 'correct horse' })
+    logout()
+
+    expect(read(KEYS.token, null)).toBeNull()
+    expect(read(KEYS.session, null)).toBeNull()
   })
 
   it('never stores the password itself', async () => {
     await register({ name: 'A B', email: 'ab@nsbm.ac.lk', password: 'plaintext-secret' })
-    expect(window.localStorage.getItem('campusbook:users')).not.toContain('plaintext-secret')
+    expect(JSON.stringify(window.localStorage)).not.toContain('plaintext-secret')
+  })
+})
+
+describe('authenticated requests', () => {
+  it('sends the bearer token on every call', async () => {
+    await register({ name: 'A B', email: 'ab@nsbm.ac.lk', password: 'correct horse' })
+
+    const spy = jest.spyOn(globalThis, 'fetch')
+    await listResources()
+
+    const [, options] = spy.mock.calls[0]
+    expect(options.headers.Authorization).toMatch(/^Bearer /)
   })
 
-  it('rejects a wrong password without saying which half was wrong', async () => {
-    await register({ name: 'A B', email: 'ab@nsbm.ac.lk', password: 'right-password' })
+  it('is rejected without a token', async () => {
+    const result = await createBooking(draft())
+    expect(result.ok).toBe(false)
+    expect(result.error).toMatch(/sign in/i)
+  })
+})
 
-    const wrongPassword = await login({ email: 'ab@nsbm.ac.lk', password: 'nope' })
-    const noSuchUser = await login({ email: 'ghost@nsbm.ac.lk', password: 'nope' })
+describe('bookings', () => {
+  beforeEach(async () => {
+    await register({ name: 'Shakya P', email: 'shakya@nsbm.ac.lk', password: 'correct horse' })
+  })
 
-    expect(wrongPassword.ok).toBe(false)
-    expect(wrongPassword.error).toBe(noSuchUser.error)
+  it('books a free window', async () => {
+    const result = await createBooking(draft())
+
+    expect(result.ok).toBe(true)
+    expect(result.booking).toMatchObject({ resourceId: 'SR-14', start: '10:00', end: '11:00' })
+    expect(await listBookings()).toHaveLength(1)
+  })
+
+  it('reports the conflict when the window is taken, without overwriting it', async () => {
+    server.seedBooking({
+      resourceId: 'SR-14',
+      day: DAY,
+      start: '10:00',
+      end: '11:00',
+      purpose: 'Already booked',
+      userId: 'someone-else',
+      userName: 'Dilini F',
+    })
+
+    const result = await createBooking(draft({ start: '10:30', end: '11:30' }))
+
+    expect(result.ok).toBe(false)
+    expect(result.conflict.userName).toBe('Dilini F')
+    // The original booking is still the only one on the board.
+    expect(await listBookings()).toHaveLength(1)
+  })
+
+  it('allows a booking that starts exactly when another ends', async () => {
+    await createBooking(draft())
+    const result = await createBooking(draft({ start: '11:00', end: '12:00' }))
+    expect(result.ok).toBe(true)
+  })
+
+  it('filters by day when one is given', async () => {
+    await createBooking(draft())
+    await createBooking(draft({ day: '2026-01-16' }))
+
+    expect(await listBookings(DAY)).toHaveLength(1)
+    expect(await listBookings()).toHaveLength(2)
+  })
+
+  it('refuses to cancel a booking owned by someone else', async () => {
+    const theirs = server.seedBooking({
+      resourceId: 'LAB-A',
+      day: DAY,
+      start: '13:00',
+      end: '14:00',
+      purpose: 'Theirs',
+      userId: 'someone-else',
+      userName: 'Dilini F',
+    })
+
+    const result = await cancelBooking(theirs.id)
+    expect(result.ok).toBe(false)
+    expect(result.error).toContain('Dilini F')
+    expect(await listBookings()).toHaveLength(1)
+  })
+
+  it('cancels your own booking', async () => {
+    const made = await createBooking(draft())
+    const result = await cancelBooking(made.booking.id)
+
+    expect(result.ok).toBe(true)
+    expect(await listBookings()).toHaveLength(0)
+  })
+})
+
+describe('when the server is unreachable', () => {
+  it('reports a readable message instead of throwing', async () => {
+    globalThis.fetch = () => Promise.reject(new TypeError('Failed to fetch'))
+
+    const result = await login({ email: 'a@b.co', password: 'whatever' })
+    expect(result.ok).toBe(false)
+    expect(result.error).toMatch(/cannot reach the server/i)
   })
 })

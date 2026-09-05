@@ -1,25 +1,26 @@
-const express = require("express");
+const http = require('http')
+const { loadEnv } = require('./config/env')
 
-const app = express();
+// Loaded before anything else, so a missing key fails here with a clear message
+// rather than deep inside mongoose or jsonwebtoken.
+const env = loadEnv()
 
-const PORT = 5002;
+const app = require('./app')
+const { connectDB } = require('./config/db')
+const realtime = require('./realtime')
 
-// Middleware
-app.use(express.json());
+// Express and Socket.io share one HTTP server, so both are reachable on the
+// same port and the same nginx proxy rule covers them.
+const server = http.createServer(app)
+realtime.init(server)
 
-// Booking routes
-const bookingRoutes = require("./routes/bookingRoutes");
-
-app.use("/api/bookings", bookingRoutes);
-
-// Home route
-app.get("/", (req, res) => {
-    res.json({
-        message: "SlotSync Booking Management Backend is running!"
-    });
-});
-
-// Start server
-app.listen(PORT, () => {
-    console.log(`SlotSync Booking Management Backend running on port ${PORT}`);
-});
+connectDB(env.mongoUrl)
+  .then(() => {
+    server.listen(env.port, () => {
+      console.log(`CampusBook API listening on :${env.port} (REST + WebSocket)`)
+    })
+  })
+  .catch((err) => {
+    console.error('Could not connect to MongoDB, exiting.', err)
+    process.exit(1)
+  })

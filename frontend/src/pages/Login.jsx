@@ -27,7 +27,7 @@ export default function Login() {
   return (
     <AuthShell
       title="Sign in"
-      lede="Use the account you registered with your campus email."
+      lede="Use the account you registered with your University email."
       footer={
         <>
           No account yet? <Link to="/register">Register</Link>

@@ -89,6 +89,7 @@ export default function BoardGrid({
 
           {resources.map((res, ri) => {
             const row = ri + 2
+            const meta = `${res.kind === 'Room' ? `Seats ${res.capacity}` : res.category} · ${res.location}`
             const held = byResource.get(res.id) ?? []
             const occupied = new Set()
             for (const b of held) {
@@ -103,12 +104,13 @@ export default function BoardGrid({
                   className="res"
                   style={{ gridRow: row, gridColumn: 1 }}
                   onClick={() => onOpenResource(res)}
+                  title={`${res.id} — ${res.name}. ${meta}`}
                 >
-                  <span className="res__id">{res.id}</span>
-                  <span className="res__name">{res.name}</span>
-                  <span className="res__meta">
-                    {res.kind === 'Room' ? `Seats ${res.capacity}` : res.category} · {res.location}
+                  <span className="res__head">
+                    <span className="res__id">{res.id}</span>
+                    <span className="res__name">{res.name}</span>
                   </span>
+                  <span className="res__meta">{meta}</span>
                 </button>
 
                 {SLOT_TIMES.map((t, i) =>

@@ -1,63 +1,70 @@
 /**
- * The live layer (brief: M5 real-time).
+ * Real-time updates between connected clients (brief: M5), over Socket.io.
  *
- * Until the Socket.io server exists, "other connected clients" are other browser
- * tabs, wired together with BroadcastChannel. Open the app twice, log in as two
- * different people, and bookings appear in both windows as they are made.
+ * The server is the only broadcaster. This client listens and never emits
+ * booking events — changes go through the REST API, and the server announces
+ * them once they are actually written. Two people on different machines see
+ * each other's bookings appear as they happen.
  *
- * This is the ONLY file that needs to change when the backend lands:
- *
- *   import { io } from 'socket.io-client'
- *   const socket = io(import.meta.env.VITE_API_URL)
- *   socket.on('bookings:changed', onMessage)
- *   ... publish -> socket.emit('bookings:changed', message)
- *
- * The rest of the app only knows about connect()/publish().
+ * The socket carries the same JWT as the REST calls, so an unauthenticated
+ * connection is refused rather than being allowed to watch the board.
  */
 
-const CHANNEL = 'campusbook:live'
+import { io } from 'socket.io-client'
+import { KEYS, read } from './storage'
 
-export function connect(onMessage) {
-  if (typeof window === 'undefined') return () => {}
+// Same origin as the API: Vite proxies it in dev, nginx proxies it in Docker
+// (the proxy already passes the Upgrade header that WebSockets need).
+const URL = typeof __API_URL__ === 'string' ? __API_URL__ : ''
 
-  if ('BroadcastChannel' in window) {
-    const channel = new BroadcastChannel(CHANNEL)
-    const handle = (event) => onMessage(event.data)
-    channel.addEventListener('message', handle)
-    return () => {
-      channel.removeEventListener('message', handle)
-      channel.close()
-    }
-  }
+let socket = null
 
-  // Fallback for browsers without BroadcastChannel: the storage event also
-  // fires across tabs, so relay through a scratch key.
-  const handle = (event) => {
-    if (event.key !== CHANNEL || !event.newValue) return
-    try {
-      onMessage(JSON.parse(event.newValue).message)
-    } catch {
-      /* ignore malformed relay */
-    }
-  }
-  window.addEventListener('storage', handle)
-  return () => window.removeEventListener('storage', handle)
+function getSocket() {
+  if (socket) return socket
+
+  socket = io(URL || undefined, {
+    auth: (cb) => cb({ token: read(KEYS.token, null) }),
+    autoConnect: true,
+    // Falls back to long-polling where a proxy will not upgrade the connection.
+    transports: ['websocket', 'polling'],
+    reconnectionDelay: 500,
+    reconnectionDelayMax: 5000,
+  })
+
+  return socket
 }
 
-export function publish(message) {
-  if (typeof window === 'undefined') return
-
-  if ('BroadcastChannel' in window) {
-    const channel = new BroadcastChannel(CHANNEL)
-    channel.postMessage(message)
-    channel.close()
-    return
-  }
-
+/**
+ * Subscribe to board changes. Returns an unsubscribe function.
+ * The callback shape is kept from the previous implementation so callers did
+ * not have to change: { type: 'bookings:changed', ... }.
+ */
+export function connect(onMessage) {
+  let live
   try {
-    // `at` forces a value change so the storage event always fires.
-    window.localStorage.setItem(CHANNEL, JSON.stringify({ at: Date.now(), message }))
+    live = getSocket()
   } catch {
-    /* nothing to do */
+    // Nothing to listen to; the app still works, it just will not live-update.
+    return () => {}
   }
+
+  const handler = (payload) => onMessage({ type: 'bookings:changed', ...payload })
+  live.on('bookings:changed', handler)
+
+  return () => {
+    live.off('bookings:changed', handler)
+  }
+}
+
+/** Re-authenticate the socket after a sign-in or sign-out changes the token. */
+export function refreshAuth() {
+  if (!socket) return
+  socket.disconnect()
+  socket.connect()
+}
+
+export function disconnect() {
+  if (!socket) return
+  socket.disconnect()
+  socket = null
 }

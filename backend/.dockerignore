@@ -1,0 +1,13 @@
+# Secrets — never bake these into an image.
+.env
+.env.*
+.env.fullstack
+!.env.example
+
+node_modules
+*.log
+tests
+jest.config.js
+.git
+.gitignore
+README.md

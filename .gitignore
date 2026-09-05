@@ -3,6 +3,7 @@
 .env.*
 !.env.example
 !.env.fullstack.example
+.env.fullstack.example
 
 # Dependencies and build output
 node_modules

@@ -4,7 +4,7 @@ Room and equipment booking for campus. Students and staff can see which lecture
 theatres, labs, study rooms and AV kit are free, and book a slot before someone
 else does.
 
-**Module:** Full Stack Development (PUSL3120) · NSBM Green University · Year 3, Semester 1
+**Module: * * Full Stack Development (PUSL3120) · NSBM Green University · Year 3, Semester 1
 
 | | |
 | --- | --- |
